@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/swag"
 
 	"github.com/cyverse-de/tagger/restapi/operations/status"
+	"github.com/cyverse-de/tagger/restapi/operations/tags"
 )
 
 // NewTaggerAPI creates a new Tagger instance
@@ -33,6 +34,9 @@ func NewTaggerAPI(spec *loads.Document) *TaggerAPI {
 		JSONProducer:    runtime.JSONProducer(),
 		StatusGetHandler: status.GetHandlerFunc(func(params status.GetParams) middleware.Responder {
 			return middleware.NotImplemented("operation StatusGet has not yet been implemented")
+		}),
+		TagsAddTagHandler: tags.AddTagHandlerFunc(func(params tags.AddTagParams) middleware.Responder {
+			return middleware.NotImplemented("operation TagsAddTag has not yet been implemented")
 		}),
 	}
 }
@@ -54,6 +58,8 @@ type TaggerAPI struct {
 
 	// StatusGetHandler sets the operation handler for the get operation
 	StatusGetHandler status.GetHandler
+	// TagsAddTagHandler sets the operation handler for the add tag operation
+	TagsAddTagHandler tags.AddTagHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -119,6 +125,10 @@ func (o *TaggerAPI) Validate() error {
 
 	if o.StatusGetHandler == nil {
 		unregistered = append(unregistered, "status.GetHandler")
+	}
+
+	if o.TagsAddTagHandler == nil {
+		unregistered = append(unregistered, "tags.AddTagHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -208,6 +218,11 @@ func (o *TaggerAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"][""] = status.NewGet(o.context, o.StatusGetHandler)
+
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/tags"] = tags.NewAddTag(o.context, o.TagsAddTagHandler)
 
 }
 

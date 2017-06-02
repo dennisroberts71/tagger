@@ -44,9 +44,49 @@ func init() {
           }
         }
       }
+    },
+    "/tags": {
+      "post": {
+        "description": "Indexes a new tag in ElasticSearch.",
+        "tags": [
+          "tags"
+        ],
+        "summary": "Index a new tag.",
+        "operationId": "addTag",
+        "parameters": [
+          {
+            "description": "The new tag to index.",
+            "name": "tag-in",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/tag-in"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
     }
   },
   "definitions": {
+    "error-out": {
+      "description": "The standard format for an error response body.",
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "reason": {
+          "description": "The reason for the error.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "service-info": {
       "type": "object",
       "required": [
@@ -70,6 +110,60 @@ func init() {
           "type": "string",
           "minLength": 1
         }
+      }
+    },
+    "tag-in": {
+      "type": "object",
+      "required": [
+        "id",
+        "value",
+        "creator",
+        "date_created",
+        "date_modified"
+      ],
+      "properties": {
+        "creator": {
+          "description": "The user who created the tag.",
+          "type": "string",
+          "minLength": 1
+        },
+        "date_created": {
+          "description": "The creation timestamp for the tag.",
+          "type": "integer"
+        },
+        "date_modified": {
+          "description": "The most recent modification timestamp for the tag.",
+          "type": "integer"
+        },
+        "description": {
+          "description": "The tag description.",
+          "type": "string",
+          "minLength": 0
+        },
+        "id": {
+          "description": "The tag identifier.",
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "description": "The tag value.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "responses": {
+    "bad-request": {
+      "description": "Bad Request",
+      "schema": {
+        "$ref": "#/definitions/error-out"
+      }
+    },
+    "internal-server-error": {
+      "description": "Internal Server Error",
+      "schema": {
+        "$ref": "#/definitions/error-out"
       }
     }
   }

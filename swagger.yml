@@ -1,6 +1,16 @@
 consumes:
   - "application/json"
 definitions:
+  error-out:
+    type: object
+    description: "The standard format for an error response body."
+    required:
+      - reason
+    properties:
+      reason:
+        type: "string"
+        description: "The reason for the error."
+        minLength: 1
   service-info:
     type: object
     required:
@@ -20,6 +30,38 @@ definitions:
         type: "string"
         description: "The service's version number."
         minLength: 1
+  tag-in:
+    type: object
+    required:
+      - "id"
+      - "value"
+      - "creator"
+      - "date_created"
+      - "date_modified"
+    properties:
+      id:
+        type: "string"
+        description: "The tag identifier."
+        minLength: 1
+      value:
+        type: "string"
+        description: "The tag value."
+        minLength: 1
+      description:
+        type: "string"
+        description: "The tag description."
+        minLength: 0
+        default:
+      creator:
+        type: "string"
+        description: "The user who created the tag."
+        minLength: 1
+      date_created:
+        type: "integer"
+        description: "The creation timestamp for the tag."
+      date_modified:
+        type: "integer"
+        description: "The most recent modification timestamp for the tag."
 info:
   description: "Creates, updates, and deletes tags in an ElasticSearch index."
   title: "Tag Registration Service"
@@ -38,8 +80,34 @@ paths:
           description: "Success"
           schema:
             $ref: "#/definitions/service-info"
+  /tags:
+    post:
+      tags:
+        - "tags"
+      summary: "Index a new tag."
+      description: "Indexes a new tag in ElasticSearch."
+      operationId: "addTag"
+      parameters:
+        - description: "The new tag to index."
+          in: "body"
+          name: "tag-in"
+          required: True
+          schema:
+            $ref: "#/definitions/tag-in"
+      responses:
+        200:
+          description: "Success"
 produces:
   - "application/json"
+responses:
+  bad-request:
+    description: "Bad Request"
+    schema:
+      $ref: "#/definitions/error-out"
+  internal-server-error:
+    description: "Internal Server Error"
+    schema:
+      $ref: "#/definitions/error-out"
 schemes:
   - "http"
 swagger: "2.0"

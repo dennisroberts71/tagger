@@ -2,25 +2,38 @@ package restapi
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 	"os"
 
+	configurate "github.com/cyverse-de/configurate"
 	version "github.com/cyverse-de/version"
 	errors "github.com/go-openapi/errors"
 	runtime "github.com/go-openapi/runtime"
 	middleware "github.com/go-openapi/runtime/middleware"
 	swag "github.com/go-openapi/swag"
+	viper "github.com/spf13/viper"
 	graceful "github.com/tylerb/graceful"
 
 	"github.com/cyverse-de/tagger/restapi/operations"
 	"github.com/cyverse-de/tagger/restapi/operations/status"
+	"github.com/cyverse-de/tagger/restapi/operations/tags"
 
+	elasticsearch "github.com/cyverse-de/tagger/restapi/impl/elasticsearch"
 	status_impl "github.com/cyverse-de/tagger/restapi/impl/status"
+	tags_impl "github.com/cyverse-de/tagger/restapi/impl/tags"
 )
 
 // This file is safe to edit. Once it exists it will not be overwritten
 
 //go:generate swagger generate server --target .. --name tagger --spec ../swagger.yml
+
+// The default tagger configuration.
+const DefaultConfig = `
+elasticsearch:
+  base: http://elasticsearch:9200
+  index: data
+`
 
 // Command line options that aren't managed by go-swagger.
 var options struct {
@@ -28,6 +41,7 @@ var options struct {
 	ShowVersion bool   `short:"v" long:"version" description:"Print the app version and exit"`
 }
 
+// Register the custom command-line options.
 func configureFlags(api *operations.TaggerAPI) {
 	api.CommandLineOptionsGroups = []swag.CommandLineOptionsGroup{
 		swag.CommandLineOptionsGroup{
@@ -38,11 +52,41 @@ func configureFlags(api *operations.TaggerAPI) {
 	}
 }
 
+// Validate the custom command-line options.
+func validateOptions() error {
+	if options.CfgPath == "" {
+		return fmt.Errorf("--config must be set")
+	}
+
+	return nil
+}
+
+// The elasticsearch client.
+var esClient *elasticsearch.ESClient
+
 // Initialize the service.
 func initService() error {
 	if options.ShowVersion {
 		version.AppVersion()
 		os.Exit(0)
+	}
+
+	var (
+		err error
+		cfg *viper.Viper
+	)
+	if cfg, err = configurate.InitDefaults(options.CfgPath, DefaultConfig); err != nil {
+		return err
+	}
+
+	esClient, err = elasticsearch.NewESClient(
+		cfg.GetString("elasticsearch.base"),
+		cfg.GetString("elasticsearch.username"),
+		cfg.GetString("elasticsearch.password"),
+		cfg.GetString("elasticsearch.index"),
+	)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -61,6 +105,8 @@ func configureAPI(api *operations.TaggerAPI) http.Handler {
 	api.JSONProducer = runtime.JSONProducer()
 
 	api.StatusGetHandler = status.GetHandlerFunc(status_impl.BuildStatusHandler(SwaggerJSON))
+
+	api.TagsAddTagHandler = tags.AddTagHandlerFunc(tags_impl.BuildAddTagHandler())
 
 	api.ServerShutdown = cleanup
 
